@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFF4E6">
+<title>우리 반 모둠 점수판</title>
+<style>
+  :root{
+    --ink:#5A4434;
+    --ink-soft:#8E7663;
+    --cream:#FFF8EE;
+    --gold:#FFC23D;
+    --gold-deep:#E39A10;
+    --radius:30px;
+    --font:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕","Noto Sans KR","Nanum Gothic",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{touch-action:manipulation;-webkit-text-size-adjust:100%}
+  body{
+    min-height:100vh;
+    font-family:var(--font);
+    color:var(--ink);
+    background-color:var(--cream);
+    background-image:
+      radial-gradient(rgba(227,154,16,.13) 1.6px, transparent 1.9px),
+      linear-gradient(160deg,#FFF9EF 0%,#FFF0E2 50%,#FDECF1 100%);
+    background-size:30px 30px,100% 100%;
+    background-attachment:fixed;
+    overflow-x:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button{font-family:inherit;cursor:pointer;-webkit-user-select:none;user-select:none}
+  input{font-family:inherit}
+  :focus-visible{outline:4px solid rgba(91,71,184,.55);outline-offset:3px}
+  .ico{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+
+  /* ───── 상단 바 ───── */
+  .topbar{
+    display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;
+    padding:18px 28px 6px;
+  }
+  .title{
+    flex:1 1 320px;min-width:0;
+    font-size:clamp(28px,3.4vw,52px);font-weight:900;letter-spacing:-.02em;
+    color:var(--ink);
+    background:transparent;border:3px dashed transparent;border-radius:18px;
+    padding:4px 12px;outline:none;text-overflow:ellipsis;
+  }
+  .title:hover{border-color:rgba(142,118,99,.25)}
+  .title:focus{border-color:var(--gold-deep);background:rgba(255,255,255,.75)}
+  .actions{display:flex;flex-wrap:wrap;gap:10px}
+  .pill{
+    display:inline-flex;align-items:center;gap:8px;
+    min-height:58px;padding:0 22px;
+    font-size:clamp(18px,1.45vw,23px);font-weight:800;
+    color:var(--ink);background:#fff;border:0;border-radius:999px;
+    box-shadow:inset 0 -5px 0 rgba(90,68,52,.12),0 4px 12px rgba(90,68,52,.10);
+    transition:transform .08s,box-shadow .08s,background-color .2s,color .2s,opacity .2s;
+    white-space:nowrap;
+  }
+  .pill:active{transform:translateY(3px);box-shadow:inset 0 -2px 0 rgba(90,68,52,.12),0 2px 6px rgba(90,68,52,.10)}
+  .pill-add{background:#D8F3E3;color:#2B7A55}
+  .pill-edit{background:#E6DEFF;color:#5B47B8}
+  .pill-edit.is-on{background:#6A55C9;color:#fff}
+  .pill-sound{background:#DCEEFF;color:#2F6EAE}
+  .pill-sound.off{background:#EFE8E1;color:var(--ink-soft)}
+  .pill-reset{background:#FFDCD6;color:#B8483C}
+  .pill[aria-disabled="true"]{opacity:.45}
+
+  /* ───── 모둠 카드 영역 ───── */
+  .board{
+    --s:320;
+    display:grid;gap:28px;
+    padding:26px 28px 30px;
+    align-content:start;
+  }
+  .card{
+    --bg:#FFD9C7;--light:#FFF3EC;--accent:#D9693E;
+    position:relative;min-width:0;
+    display:flex;flex-direction:column;
+    gap:calc(var(--s) * .02px);
+    padding:max(12px,calc(var(--s) * .06px));
+    background:linear-gradient(180deg,var(--light) 0%,var(--bg) 78%);
+    border:5px solid rgba(255,255,255,.95);
+    border-radius:var(--radius);
+    box-shadow:0 8px 0 rgba(90,68,52,.08),0 14px 30px rgba(90,68,52,.13);
+    transition:border-color .3s;
+    -webkit-user-select:none;user-select:none;
+  }
+  .card.leader{border-color:var(--gold);animation:glow 2.2s ease-in-out infinite}
+  @keyframes glow{
+    0%,100%{box-shadow:0 0 0 5px rgba(255,194,61,.30),0 0 26px 6px rgba(255,194,61,.45),0 14px 30px rgba(90,68,52,.13)}
+    50%{box-shadow:0 0 0 9px rgba(255,194,61,.42),0 0 44px 14px rgba(255,194,61,.62),0 14px 30px rgba(90,68,52,.13)}
+  }
+
+  .name{
+    width:100%;
+    font-size:max(20px,calc(var(--s) * .1px));
+    font-weight:900;text-align:center;color:var(--ink);
+    background:transparent;border:3px dashed transparent;border-radius:16px;
+    padding:4px calc(var(--s) * .17px);
+    outline:none;text-overflow:ellipsis;
+    -webkit-user-select:text;user-select:text;
+  }
+  .name.mid{font-size:max(18px,calc(var(--s) * .083px))}
+  .name.long{font-size:max(16px,calc(var(--s) * .068px))}
+  .name:hover{border-color:rgba(142,118,99,.25)}
+  .name:focus{border-color:var(--accent);background:rgba(255,255,255,.7)}
+
+  .score-wrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+  .score-line{display:flex;align-items:baseline;gap:max(6px,calc(var(--s) * .02px))}
+  .score{
+    display:inline-block;
+    font-size:max(56px,calc(var(--s) * .32px));
+    font-weight:900;line-height:1;letter-spacing:-.03em;
+    color:var(--accent);
+    text-shadow:0 5px 0 rgba(255,255,255,.85);
+    font-variant-numeric:tabular-nums;
+  }
+  .score.w3{font-size:max(48px,calc(var(--s) * .27px))}
+  .score.w4{font-size:max(40px,calc(var(--s) * .21px))}
+  .unit{font-size:max(20px,calc(var(--s) * .085px));font-weight:800;color:var(--ink-soft)}
+
+  .btns{display:flex;gap:max(8px,calc(var(--s) * .025px))}
+  .sbtn{
+    flex:1 1 0;min-width:0;
+    height:max(54px,calc(var(--s) * .19px));
+    font-size:max(22px,calc(var(--s) * .085px));font-weight:900;
+    color:#fff;background:var(--accent);
+    border:0;border-radius:max(16px,calc(var(--s) * .06px));
+    box-shadow:inset 0 -6px 0 rgba(0,0,0,.17),0 4px 10px rgba(90,68,52,.15);
+    text-shadow:0 2px 0 rgba(0,0,0,.12);
+    transition:transform .07s,box-shadow .07s,filter .15s;
+  }
+  .sbtn:active{transform:translateY(4px);box-shadow:inset 0 -2px 0 rgba(0,0,0,.17),0 1px 4px rgba(90,68,52,.15);filter:brightness(1.07)}
+  .sbtn.p5{flex-grow:1.25;position:relative;overflow:hidden}
+  .sbtn.p5::after{
+    content:"";position:absolute;left:0;right:0;top:0;height:50%;
+    background:linear-gradient(180deg,rgba(255,255,255,.38),rgba(255,255,255,0));pointer-events:none;
+  }
+  .sbtn.m1{
+    flex-grow:.8;color:var(--ink-soft);background:rgba(255,255,255,.82);text-shadow:none;
+    box-shadow:inset 0 -6px 0 rgba(90,68,52,.12),0 4px 10px rgba(90,68,52,.10);
+  }
+
+  /* 왕관 */
+  .crown{
+    position:absolute;z-index:3;pointer-events:none;
+    top:max(-24px,calc(var(--s) * -.06px));
+    right:max(-14px,calc(var(--s) * -.03px));
+    width:max(56px,calc(var(--s) * .23px));
+    opacity:0;transform:rotate(14deg) scale(.3);
+    transition:opacity .35s,transform .45s cubic-bezier(.3,1.7,.5,1);
+    filter:drop-shadow(0 4px 0 rgba(227,154,16,.35)) drop-shadow(0 6px 10px rgba(90,68,52,.2));
+  }
+  .crown svg{display:block;width:100%;height:auto}
+  .card.leader .crown{opacity:1;transform:rotate(14deg) scale(1)}
+
+  /* 편집 모드 */
+  .del{
+    display:none;position:absolute;z-index:4;top:-16px;left:-16px;
+    width:54px;height:54px;border-radius:50%;
+    border:4px solid #fff;background:#FF8A80;color:#fff;
+    font-size:26px;font-weight:900;line-height:1;
+    box-shadow:0 4px 10px rgba(90,68,52,.25);
+    align-items:center;justify-content:center;
+  }
+  body.editing .del{display:flex;animation:del-in .25s ease-out}
+  body.editing .card{border-style:dashed;border-color:rgba(142,118,99,.45)}
+  body.editing .card.leader{border-color:var(--gold)}
+  @keyframes del-in{from{transform:scale(0)}to{transform:scale(1)}}
+
+  /* 효과 레이어 */
+  .fx{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+  .float-txt{
+    position:absolute;font-weight:900;line-height:1;white-space:nowrap;
+    text-shadow:0 3px 0 #fff,0 -2px 0 #fff,3px 0 0 #fff,-3px 0 0 #fff,0 8px 16px rgba(90,68,52,.25);
+  }
+  .bit{position:absolute;line-height:1;will-change:transform,opacity}
+
+  /* 알림 */
+  .toast{
+    position:fixed;left:50%;bottom:28px;z-index:80;
+    transform:translate(-50%,30px);opacity:0;pointer-events:none;
+    max-width:calc(100vw - 32px);text-align:center;word-break:keep-all;
+    background:var(--ink);color:#fff;font-size:22px;font-weight:700;
+    padding:16px 28px;border-radius:999px;box-shadow:0 10px 30px rgba(90,68,52,.3);
+    transition:opacity .25s,transform .25s;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  /* 확인 창 */
+  .modal{
+    position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:16px;
+    background:rgba(90,68,52,.38);opacity:0;transition:opacity .18s;
+  }
+  .modal[hidden]{display:none}
+  .modal.open{opacity:1}
+  .dialog{
+    width:min(560px,100%);background:#FFFDF8;border-radius:32px;
+    padding:36px 32px 28px;text-align:center;
+    box-shadow:0 20px 60px rgba(90,68,52,.35);
+    transform:scale(.92);transition:transform .18s;
+  }
+  .modal.open .dialog{transform:scale(1)}
+  .dialog-msg{font-size:clamp(22px,2.2vw,30px);font-weight:800;line-height:1.45;word-break:keep-all;white-space:pre-line;margin-bottom:28px}
+  .dialog-btns{display:flex;gap:14px}
+  .dialog-btns button{flex:1;min-height:66px;font-size:24px;font-weight:900;border:0;border-radius:20px;box-shadow:inset 0 -5px 0 rgba(0,0,0,.12)}
+  .dialog-btns button:active{transform:translateY(3px)}
+  .btn-cancel{background:#EFE8E1;color:var(--ink)}
+  .btn-ok{background:#FF8A80;color:#fff}
+
+  @media (max-width:600px){
+    .topbar{padding:14px 14px 4px}
+    .board{gap:24px;padding:26px 14px 28px}
+    .pill{min-height:50px;padding:0 16px;font-size:17px}
+    .toast{font-size:18px;padding:14px 22px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .card.leader{animation:none;box-shadow:0 0 0 6px rgba(255,194,61,.4),0 14px 30px rgba(90,68,52,.13)}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar" id="topbar">
+  <input id="title" class="title" type="text" maxlength="30" spellcheck="false" autocomplete="off" aria-label="점수판 제목 (눌러서 수정)">
+  <div class="actions">
+    <button type="button" class="pill pill-add" id="btnAdd">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>모둠 추가</span>
+    </button>
+    <button type="button" class="pill pill-edit" id="btnEdit" aria-pressed="false"></button>
+    <button type="button" class="pill pill-sound" id="btnSound" aria-pressed="true"></button>
+    <button type="button" class="pill pill-reset" id="btnReset">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5V9H9"/></svg><span>전체 초기화</span>
+    </button>
+  </div>
+</header>
+
+<main class="board" id="board"></main>
+
+<div class="fx" id="fx" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal" id="modal" hidden>
+  <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="modalMsg">
+    <p class="dialog-msg" id="modalMsg"></p>
+    <div class="dialog-btns">
+      <button type="button" class="btn-cancel" id="modalCancel">취소</button>
+      <button type="button" class="btn-ok" id="modalOk">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ───────── 기본 설정 ───────── */
+  var STORAGE_KEY = 'classGroupScoreboard.v1';
+  var MAX_GROUPS = 12;
+  var MIN_GROUPS = 1;
+  var DEFAULT_COUNT = 6;
+  var MAX_SCORE = 99999;
+  var DEFAULT_TITLE = '우리 반 모둠 점수판';
+
+  // 모둠별 파스텔 색 (배경, 밝은 배경, 강조색)
+  var PALETTE = [
+    { bg: '#FFD9C7', light: '#FFF3EC', accent: '#D9693E' }, // 복숭아
+    { bg: '#C9F0DA', light: '#EFFCF4', accent: '#2E9466' }, // 민트
+    { bg: '#E3D9FF', light: '#F6F2FF', accent: '#7058CF' }, // 라벤더
+    { bg: '#FFF0A8', light: '#FFFBE3', accent: '#A88200' }, // 레몬
+    { bg: '#CDE7FF', light: '#F0F7FF', accent: '#3A82CC' }, // 하늘
+    { bg: '#FFD4E2', light: '#FFF1F6', accent: '#D5527C' }, // 분홍
+    { bg: '#FFE2B8', light: '#FFF6E8', accent: '#CC7410' }, // 살구
+    { bg: '#DDF3C2', light: '#F4FCEA', accent: '#5B961C' }, // 연두
+    { bg: '#F3D3F5', light: '#FCF1FD', accent: '#A452B5' }, // 라일락
+    { bg: '#C8F1EF', light: '#EEFBFA', accent: '#1F9592' }, // 아쿠아
+    { bg: '#FFCFC8', light: '#FFF0EE', accent: '#D24F45' }, // 코랄
+    { bg: '#F2E3CB', light: '#FBF5EA', accent: '#A0743A' }  // 모래
+  ];
+
+  var ICON = {
+    pencil: '<svg class="ico" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M14.5 7.5l2 2"/></svg>',
+    check: '<svg class="ico" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
+    soundOn: '<svg class="ico" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>',
+    soundOff: '<svg class="ico" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>'
+  };
+
+  var CROWN_SVG =
+    '<svg viewBox="-10 -6 140 112" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M12 84 L4 28 L36 54 L60 12 L84 54 L116 28 L108 84 Z" fill="#FFCE3D" stroke="#E39A10" stroke-width="6" stroke-linejoin="round"/>' +
+    '<path d="M20 74 L15 44 L34 60" fill="none" stroke="#FFF2B0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<rect x="10" y="80" width="100" height="18" rx="8" fill="#FFB321" stroke="#E39A10" stroke-width="6"/>' +
+    '<circle cx="4" cy="28" r="8" fill="#FF8FB1" stroke="#E39A10" stroke-width="5"/>' +
+    '<circle cx="60" cy="10" r="9" fill="#7FD3FF" stroke="#E39A10" stroke-width="5"/>' +
+    '<circle cx="116" cy="28" r="8" fill="#9BE38B" stroke="#E39A10" stroke-width="5"/>' +
+    '<circle cx="60" cy="63" r="8" fill="#FF6F91"/>' +
+    '<circle cx="34" cy="89" r="4" fill="#FFF2B0"/><circle cx="60" cy="89" r="4" fill="#FFF2B0"/><circle cx="86" cy="89" r="4" fill="#FFF2B0"/>' +
+    '</svg>';
+
+  /* ───────── 화면 요소 ───────── */
+  function $(sel) { return document.querySelector(sel); }
+  var board = $('#board'), topbar = $('#topbar'), titleInput = $('#title');
+  var fx = $('#fx'), toastEl = $('#toast');
+  var btnAdd = $('#btnAdd'), btnEdit = $('#btnEdit'), btnSound = $('#btnSound'), btnReset = $('#btnReset');
+  var modal = $('#modal'), modalMsg = $('#modalMsg'), modalOk = $('#modalOk'), modalCancel = $('#modalCancel');
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  var state = null;
+  var editing = false;
+  var prevLeaders = new Set();
+
+  /* ───────── 저장 / 불러오기 ───────── */
+  function makeId() { return 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  function defaultState() {
+    var groups = [];
+    for (var i = 0; i < DEFAULT_COUNT; i++) {
+      groups.push({ id: makeId() + i, name: (i + 1) + '모둠', score: 0, color: i });
+    }
+    return { title: DEFAULT_TITLE, sound: true, groups: groups };
+  }
+
+  function sanitize(data) {
+    if (!data || !Array.isArray(data.groups) || data.groups.length < MIN_GROUPS) return null;
+    var seen = new Set();
+    var groups = data.groups.slice(0, MAX_GROUPS).map(function (g, i) {
+      g = g || {};
+      var id = (typeof g.id === 'string' && g.id) ? g.id : makeId() + i;
+      if (seen.has(id)) id = makeId() + i;
+      seen.add(id);
+      var name = (typeof g.name === 'string' && g.name.trim()) ? g.name.trim().slice(0, 12) : (i + 1) + '모둠';
+      var score = Math.floor(Number(g.score));
+      if (!isFinite(score) || score < 0) score = 0;
+      if (score > MAX_SCORE) score = MAX_SCORE;
+      var color = Number(g.color);
+      if (!(color >= 0 && color < PALETTE.length && Math.floor(color) === color)) color = i % PALETTE.length;
+      return { id: id, name: name, score: score, color: color };
+    });
+    return {
+      title: (typeof data.title === 'string' && data.title.trim()) ? data.title.trim().slice(0, 30) : DEFAULT_TITLE,
+      sound: data.sound !== false,
+      groups: groups
+    };
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return sanitize(JSON.parse(raw));
+    } catch (e) { return null; }
+  }
+
+  var storageWarned = false;
+  function save() {
+    clearTimeout(saveTimer); saveTimer = null;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      if (!storageWarned) { storageWarned = true; toast('이 브라우저에서는 자동 저장이 되지 않아요'); }
+    }
+  }
+  var saveTimer = null;
+  function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(save, 300); }
+
+  /* ───────── 효과음 (Web Audio API) ───────── */
+  var sfx = (function () {
+    var ctx = null, master = null;
+    function ac() {
+      if (!state.sound) return null;
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      if (!ctx) {
+        try {
+          ctx = new AC();
+          master = ctx.createGain();
+          master.gain.value = 0.55;
+          master.connect(ctx.destination);
+        } catch (e) { ctx = null; return null; }
+      }
+      if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+      return ctx;
+    }
+    function tone(freq, at, dur, type, vol, toFreq) {
+      var c = ac(); if (!c) return;
+      var t = c.currentTime + 0.01 + at;
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = type || 'triangle';
+      o.frequency.setValueAtTime(freq, t);
+      if (toFreq) o.frequency.exponentialRampToValueAtTime(toFreq, t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.3, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(master);
+      o.start(t); o.stop(t + dur + 0.05);
+    }
+    return {
+      up: function () { tone(880, 0, 0.11, 'triangle', 0.4); tone(1318.5, 0.07, 0.18, 'triangle', 0.35); },
+      fanfare: function () {
+        [523.25, 659.25, 783.99].forEach(function (f, i) {
+          tone(f, i * 0.09, 0.13, 'square', 0.10);
+          tone(f, i * 0.09, 0.15, 'triangle', 0.28);
+        });
+        tone(1046.5, 0.27, 0.45, 'square', 0.10);
+        tone(1046.5, 0.27, 0.5, 'triangle', 0.32);
+        tone(1318.5, 0.27, 0.5, 'triangle', 0.16);
+        tone(1567.98, 0.27, 0.5, 'sine', 0.12);
+      },
+      down: function () { tone(370, 0, 0.32, 'triangle', 0.35, 185); tone(370, 0, 0.32, 'sawtooth', 0.06, 185); },
+      nope: function () { tone(196, 0, 0.12, 'triangle', 0.25); },
+      crown: function () { [1318.5, 1567.98, 2093, 2637].forEach(function (f, i) { tone(f, i * 0.07, 0.22, 'sine', 0.2); }); },
+      reset: function () { [784, 659.25, 523.25].forEach(function (f, i) { tone(f, i * 0.08, 0.14, 'triangle', 0.25); }); },
+      pop: function () { tone(520, 0, 0.12, 'sine', 0.3, 1040); }
+    };
+  })();
+
+  /* ───────── 애니메이션 도우미 ───────── */
+  function anim(el, frames, opts) {
+    if (!el || typeof el.animate !== 'function') return null;
+    try { return el.animate(frames, opts); } catch (e) { return null; }
+  }
+  function autoRemove(a, el) {
+    if (a) a.onfinish = function () { el.remove(); };
+    else el.remove();
+  }
+  function spawn(cls, x, y) {
+    var el = document.createElement('div');
+    el.className = cls;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    fx.appendChild(el);
+    return el;
+  }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function currentS() { return parseFloat(board.style.getPropertyValue('--s')) || 320; }
+
+  function bump(el, peak) {
+    anim(el, [
+      { transform: 'scale(1)' },
+      { transform: 'scale(' + peak + ') rotate(-4deg)', offset: 0.35 },
+      { transform: 'scale(.95)', offset: 0.7 },
+      { transform: 'scale(1)' }
+    ], { duration: 480, easing: 'ease-out' });
+  }
+  function dip(el) {
+    anim(el, [
+      { transform: 'scale(1)' },
+      { transform: 'scale(.82) translateY(6%)', offset: 0.4 },
+      { transform: 'scale(1)' }
+    ], { duration: 420, easing: 'ease-out' });
+  }
+  function jump(el) {
+    anim(el, [
+      { transform: 'translateY(0) scale(1)' },
+      { transform: 'translateY(-14px) scale(1.03)', offset: 0.35 },
+      { transform: 'translateY(2px) scale(.99)', offset: 0.7 },
+      { transform: 'translateY(0) scale(1)' }
+    ], { duration: 520, easing: 'ease-out' });
+  }
+  function shake(el, amp) {
+    anim(el, [0, -1, 1, -0.8, 0.8, -0.4, 0].map(function (k) {
+      return { transform: 'translateX(' + (k * amp) + 'px)' };
+    }), { duration: 420, easing: 'ease-in-out' });
+  }
+
+  function floatText(anchor, text, color, scale) {
+    var r = anchor.getBoundingClientRect();
+    var x = r.left + r.width / 2 + (Math.random() - 0.5) * r.width * 0.4;
+    var el = spawn('float-txt', x, r.top);
+    el.textContent = text;
+    el.style.color = color;
+    el.style.fontSize = Math.max(30, currentS() * 0.14 * scale) + 'px';
+    var a = anim(el, [
+      { transform: 'translate(-50%,-20%) scale(.6)', opacity: 0 },
+      { transform: 'translate(-50%,-70%) scale(1.15)', opacity: 1, offset: 0.25 },
+      { transform: 'translate(-50%,-190%) scale(1)', opacity: 0 }
+    ], { duration: 950, easing: 'cubic-bezier(.2,.7,.3,1)' });
+    autoRemove(a, el);
+  }
+
+  function miniBurst(anchor, color) {
+    if (reduceMotion) return;
+    var r = anchor.getBoundingClientRect();
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2, s = currentS(), n = 10;
+    for (var i = 0; i < n; i++) {
+      var b = spawn('bit', cx, cy);
+      var size = 6 + Math.random() * 7;
+      b.style.width = b.style.height = size + 'px';
+      b.style.borderRadius = '50%';
+      b.style.background = i % 2 ? color : '#FFC23D';
+      var ang = (i / n) * Math.PI * 2 + Math.random() * 0.4;
+      var d = s * 0.28 + Math.random() * s * 0.12;
+      var a = anim(b, [
+        { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 },
+        { transform: 'translate(-50%,-50%) translate(' + (Math.cos(ang) * d) + 'px,' + (Math.sin(ang) * d) + 'px) scale(.3)', opacity: 0 }
+      ], { duration: 520 + Math.random() * 200, easing: 'cubic-bezier(.2,.8,.3,1)' });
+      autoRemove(a, b);
+    }
+  }
+
+  function confetti(anchor, colorIdx) {
+    if (reduceMotion || fx.childElementCount > 260) return;
+    var r = anchor.getBoundingClientRect();
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    var colors = [PALETTE[colorIdx].accent, '#FFC23D', '#FF8FB1', '#7FD3FF', '#9BE38B', '#C9A7FF', '#FFB36B'];
+    for (var i = 0; i < 34; i++) {
+      var b = spawn('bit', cx, cy);
+      var size = 9 + Math.random() * 12;
+      var kind = Math.random();
+      if (kind < 0.2) {
+        b.textContent = '★';
+        b.style.fontSize = (size * 1.7) + 'px';
+        b.style.color = pick(colors);
+      } else {
+        b.style.width = size + 'px';
+        b.style.height = (kind < 0.6 ? size * 0.55 : size) + 'px';
+        b.style.background = pick(colors);
+        b.style.borderRadius = kind < 0.6 ? '3px' : '50%';
+      }
+      var ang = (-90 + (Math.random() * 150 - 75)) * Math.PI / 180;
+      var v = 160 + Math.random() * 260;
+      var dx = Math.cos(ang) * v, dy = Math.sin(ang) * v;
+      var rot = Math.random() * 720 - 360;
+      var a = anim(b, [
+        { transform: 'translate(-50%,-50%) rotate(0deg) scale(.6)', opacity: 1, easing: 'cubic-bezier(.15,.75,.35,1)' },
+        { transform: 'translate(-50%,-50%) translate(' + dx + 'px,' + dy + 'px) rotate(' + (rot / 2) + 'deg) scale(1)', opacity: 1, offset: 0.38, easing: 'cubic-bezier(.5,0,.9,.6)' },
+        { transform: 'translate(-50%,-50%) translate(' + (dx * 1.35) + 'px,' + (dy + 340 + Math.random() * 160) + 'px) rotate(' + rot + 'deg) scale(.9)', opacity: 0 }
+      ], { duration: 1200 + Math.random() * 700, easing: 'linear' });
+      autoRemove(a, b);
+    }
+  }
+
+  function crownPop(card) {
+    var crown = card.querySelector('.crown');
+    anim(crown, [
+      { transform: 'translateY(-60%) rotate(-25deg) scale(.2)', opacity: 0 },
+      { transform: 'translateY(6%) rotate(24deg) scale(1.35)', opacity: 1, offset: 0.55 },
+      { transform: 'translateY(0) rotate(10deg) scale(.95)', opacity: 1, offset: 0.8 },
+      { transform: 'translateY(0) rotate(14deg) scale(1)', opacity: 1 }
+    ], { duration: 800, easing: 'ease-out' });
+    if (reduceMotion) return;
+    setTimeout(function () {
+      var r = crown.getBoundingClientRect();
+      var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      for (var i = 0; i < 10; i++) {
+        var sp = spawn('bit', cx, cy);
+        sp.textContent = '✦';
+        sp.style.fontSize = (14 + Math.random() * 16) + 'px';
+        sp.style.color = i % 3 ? '#FFC23D' : '#FF8FB1';
+        var ang = (i / 10) * Math.PI * 2;
+        var d = r.width * (0.7 + Math.random() * 0.4);
+        var a = anim(sp, [
+          { transform: 'translate(-50%,-50%) scale(.2)', opacity: 1 },
+          { transform: 'translate(-50%,-50%) translate(' + (Math.cos(ang) * d) + 'px,' + (Math.sin(ang) * d) + 'px) scale(1.1) rotate(90deg)', opacity: 0 }
+        ], { duration: 700, easing: 'cubic-bezier(.2,.8,.3,1)' });
+        autoRemove(a, sp);
+      }
+    }, 380);
+  }
+
+  /* ───────── 알림 / 확인 창 ───────── */
+  var toastTimer = null;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 2400);
+  }
+
+  var modalResolve = null;
+  function confirmBox(msg, okLabel) {
+    return new Promise(function (resolve) {
+      modalMsg.textContent = msg;
+      modalOk.textContent = okLabel || '확인';
+      modal.hidden = false;
+      void modal.offsetWidth;
+      modal.classList.add('open');
+      modalResolve = resolve;
+      setTimeout(function () { modalCancel.focus(); }, 30);
+    });
+  }
+  function closeModal(result) {
+    if (!modalResolve) return;
+    var done = modalResolve;
+    modalResolve = null;
+    modal.classList.remove('open');
+    setTimeout(function () { if (!modalResolve) modal.hidden = true; }, 200);
+    done(result);
+  }
+  modalOk.addEventListener('click', function () { closeModal(true); });
+  modalCancel.addEventListener('click', function () { closeModal(false); });
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(false); });
+  document.addEventListener('keydown', function (e) { if (modalResolve && e.key === 'Escape') closeModal(false); });
+
+  // 이름 뒤에 '을/를' 알맞게 붙이기
+  function eulReul(word) {
+    var ch = word.charCodeAt(word.length - 1);
+    if (ch >= 0xAC00 && ch <= 0xD7A3) return (ch - 0xAC00) % 28 ? '을' : '를';
+    return '을(를)';
+  }
+
+  /* ───────── 카드 그리기 ───────── */
+  function findGroup(id) {
+    for (var i = 0; i < state.groups.length; i++) if (state.groups[i].id === id) return state.groups[i];
+    return null;
+  }
+  function getCard(id) {
+    var cards = board.children;
+    for (var i = 0; i < cards.length; i++) if (cards[i].dataset.id === id) return cards[i];
+    return null;
+  }
+  function sizeName(input) {
+    var n = Array.from(input.value).length;
+    input.classList.toggle('mid', n > 5 && n <= 8);
+    input.classList.toggle('long', n > 8);
+  }
+  function setScoreText(el, v) {
+    el.textContent = v;
+    var len = String(v).length;
+    el.classList.toggle('w3', len === 3);
+    el.classList.toggle('w4', len >= 4);
+  }
+
+  var CARD_INNER =
+    '<button class="del" type="button" data-act="del">✕</button>' +
+    '<div class="crown" aria-hidden="true">' + CROWN_SVG + '</div>' +
+    '<input class="name" type="text" maxlength="12" spellcheck="false" autocomplete="off">' +
+    '<div class="score-wrap"><div class="score-line"><span class="score">0</span><span class="unit">점</span></div></div>' +
+    '<div class="btns">' +
+      '<button class="sbtn p1" type="button" data-act="score" data-v="1">+1</button>' +
+      '<button class="sbtn p5" type="button" data-act="score" data-v="5">+5</button>' +
+      '<button class="sbtn m1" type="button" data-act="score" data-v="-1">−1</button>' +
+    '</div>';
+
+  function makeCard(g) {
+    var el = document.createElement('article');
+    el.className = 'card';
+    el.dataset.id = g.id;
+    var p = PALETTE[g.color];
+    el.style.setProperty('--bg', p.bg);
+    el.style.setProperty('--light', p.light);
+    el.style.setProperty('--accent', p.accent);
+    el.innerHTML = CARD_INNER;
+    var nameEl = el.querySelector('.name');
+    nameEl.value = g.name;
+    nameEl.setAttribute('aria-label', '모둠 이름 (눌러서 수정)');
+    sizeName(nameEl);
+    el.querySelector('.del').setAttribute('aria-label', g.name + ' 삭제');
+    setScoreText(el.querySelector('.score'), g.score);
+    return el;
+  }
+
+  function render() {
+    board.innerHTML = '';
+    state.groups.forEach(function (g) { board.appendChild(makeCard(g)); });
+    updateLeaders(false);
+    updateHeader();
+    layout();
+  }
+
+  // 화면 크기와 모둠 수에 맞춰 열 수와 글자 크기를 자동으로 정함
+  function layout() {
+    var n = state.groups.length;
+    if (!n) return;
+    var cs = getComputedStyle(board);
+    var padL = parseFloat(cs.paddingLeft) || 0, padR = parseFloat(cs.paddingRight) || 0;
+    var padT = parseFloat(cs.paddingTop) || 0, padB = parseFloat(cs.paddingBottom) || 0;
+    var gap = parseFloat(cs.rowGap) || 24;
+    var W = document.documentElement.clientWidth - padL - padR;
+    var H = window.innerHeight - topbar.offsetHeight - padT - padB - 2;
+    var best = null;
+    for (var c = 1; c <= n; c++) {
+      var w = (W - gap * (c - 1)) / c;
+      if (c > 1 && w < 210) break;
+      var rows = Math.ceil(n / c);
+      var h = (H - gap * (rows - 1)) / rows;
+      var s = Math.min(w, h * 1.1);
+      if (!best || s > best.s + 1) best = { c: c, w: w, h: h, s: s };
+    }
+    var MIN_H = 260;
+    var rowH = Math.floor(best.h), size = best.s;
+    if (rowH < MIN_H) { rowH = MIN_H; size = Math.min(best.w, MIN_H * 1.1); }
+    size = Math.max(170, Math.min(size, 640));
+    board.style.gridTemplateColumns = 'repeat(' + best.c + ', minmax(0, 1fr))';
+    board.style.gridAutoRows = rowH + 'px';
+    board.style.setProperty('--s', size.toFixed(1));
+  }
+
+  /* ───────── 1등 왕관 ───────── */
+  function updateLeaders(animate) {
+    var max = 0;
+    state.groups.forEach(function (g) { if (g.score > max) max = g.score; });
+    var leaders = new Set();
+    if (max > 0) state.groups.forEach(function (g) { if (g.score === max) leaders.add(g.id); });
+    Array.prototype.forEach.call(board.children, function (card) {
+      card.classList.toggle('leader', leaders.has(card.dataset.id));
+    });
+    if (animate) {
+      var fresh = [];
+      leaders.forEach(function (id) { if (!prevLeaders.has(id)) fresh.push(id); });
+      if (fresh.length) {
+        fresh.forEach(function (id) { var c = getCard(id); if (c) crownPop(c); });
+        setTimeout(sfx.crown, 420);
+      }
+    }
+    prevLeaders = leaders;
+  }
+
+  /* ───────── 점수 변경 ───────── */
+  function changeScore(id, delta, btn) {
+    var g = findGroup(id), card = getCard(id);
+    if (!g || !card) return;
+    if (delta < 0 && g.score <= 0) { shake(btn, 6); sfx.nope(); return; }
+
+    g.score = Math.min(MAX_SCORE, Math.max(0, g.score + delta));
+    save();
+
+    var scoreEl = card.querySelector('.score');
+    setScoreText(scoreEl, g.score);
+    var accent = PALETTE[g.color].accent;
+
+    if (delta >= 5) {
+      bump(scoreEl, 1.55);
+      jump(card);
+      floatText(scoreEl, '+5', accent, 1.3);
+      confetti(scoreEl, g.color);
+      sfx.fanfare();
+    } else if (delta > 0) {
+      bump(scoreEl, 1.3);
+      floatText(scoreEl, '+1', accent, 1);
+      miniBurst(scoreEl, accent);
+      sfx.up();
+    } else {
+      dip(scoreEl);
+      shake(card, 12);
+      floatText(scoreEl, '−1', '#9A8472', 1);
+      sfx.down();
+    }
+    updateLeaders(true);
+  }
+
+  /* ───────── 모둠 추가 / 삭제 / 초기화 ───────── */
+  function addGroup() {
+    if (state.groups.length >= MAX_GROUPS) {
+      toast('모둠은 최대 ' + MAX_GROUPS + '개까지 만들 수 있어요');
+      shake(btnAdd, 6);
+      return;
+    }
+    var used = new Set(state.groups.map(function (g) { return g.name; }));
+    var n = state.groups.length + 1;
+    while (used.has(n + '모둠')) n++;
+    var counts = PALETTE.map(function () { return 0; });
+    state.groups.forEach(function (g) { counts[g.color]++; });
+    var color = 0;
+    for (var i = 1; i < counts.length; i++) if (counts[i] < counts[color]) color = i;
+
+    var g = { id: makeId(), name: n + '모둠', score: 0, color: color };
+    state.groups.push(g);
+    save();
+    render();
+    var card = getCard(g.id);
+    anim(card, [
+      { transform: 'scale(.5)', opacity: 0 },
+      { transform: 'scale(1.06)', opacity: 1, offset: 0.7 },
+      { transform: 'scale(1)', opacity: 1 }
+    ], { duration: 420, easing: 'ease-out' });
+    if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    sfx.pop();
+  }
+
+  function askDelete(id) {
+    if (state.groups.length <= MIN_GROUPS) { toast('모둠은 최소 1개가 있어야 해요'); return; }
+    var g = findGroup(id);
+    if (!g) return;
+    confirmBox('‘' + g.name + '’' + eulReul(g.name) + ' 삭제할까요?\n이 모둠의 점수도 함께 사라져요.', '삭제').then(function (ok) {
+      if (!ok) return;
+      var card = getCard(id);
+      var finish = function () {
+        state.groups = state.groups.filter(function (x) { return x.id !== id; });
+        save();
+        render();
+      };
+      var a = anim(card, [
+        { transform: 'scale(1)', opacity: 1 },
+        { transform: 'scale(.6) rotate(-6deg)', opacity: 0 }
+      ], { duration: 260, easing: 'ease-in', fill: 'forwards' });
+      if (a) a.onfinish = finish; else finish();
+    });
+  }
+
+  function askReset() {
+    confirmBox('모든 모둠의 점수를 0점으로 되돌릴까요?\n모둠 이름은 그대로 남아요.', '초기화').then(function (ok) {
+      if (!ok) return;
+      state.groups.forEach(function (g) { g.score = 0; });
+      save();
+      Array.prototype.forEach.call(board.children, function (card) {
+        var s = card.querySelector('.score');
+        setScoreText(s, 0);
+        anim(s, [{ transform: 'rotateX(0deg)' }, { transform: 'rotateX(360deg)' }], { duration: 600, easing: 'ease-out' });
+      });
+      updateLeaders(false);
+      sfx.reset();
+      toast('모든 점수를 0점으로 바꿨어요');
+    });
+  }
+
+  /* ───────── 상단 버튼 상태 ───────── */
+  function updateHeader() {
+    btnAdd.setAttribute('aria-disabled', state.groups.length >= MAX_GROUPS ? 'true' : 'false');
+  }
+  function updateSoundBtn() {
+    btnSound.classList.toggle('off', !state.sound);
+    btnSound.innerHTML = state.sound ? ICON.soundOn + '<span>소리 켜짐</span>' : ICON.soundOff + '<span>소리 꺼짐</span>';
+    btnSound.setAttribute('aria-pressed', state.sound ? 'true' : 'false');
+  }
+  function setEditing(on, announce) {
+    editing = on;
+    document.body.classList.toggle('editing', on);
+    btnEdit.classList.toggle('is-on', on);
+    btnEdit.innerHTML = on ? ICON.check + '<span>편집 끝</span>' : ICON.pencil + '<span>편집</span>';
+    btnEdit.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (announce && on) toast('편집 모드: 카드 왼쪽 위 ✕ 버튼으로 모둠을 삭제할 수 있어요');
+  }
+
+  /* ───────── 이벤트 연결 ───────── */
+  board.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    var card = btn.closest('.card');
+    if (!card) return;
+    if (btn.dataset.act === 'score') changeScore(card.dataset.id, Number(btn.dataset.v), btn);
+    else if (btn.dataset.act === 'del') askDelete(card.dataset.id);
+  });
+
+  board.addEventListener('input', function (e) {
+    var t = e.target;
+    if (!t.classList.contains('name')) return;
+    var card = t.closest('.card'), g = findGroup(card.dataset.id);
+    if (!g) return;
+    g.name = t.value.slice(0, 12);
+    sizeName(t);
+    card.querySelector('.del').setAttribute('aria-label', (g.name || '모둠') + ' 삭제');
+    saveSoon();
+  });
+  board.addEventListener('keydown', function (e) {
+    if (e.target.classList.contains('name') && e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+  });
+  board.addEventListener('focusout', function (e) {
+    var t = e.target;
+    if (!t.classList || !t.classList.contains('name')) return;
+    var card = t.closest('.card'), g = findGroup(card.dataset.id);
+    if (!g) return;
+    var v = t.value.trim();
+    g.name = v || (state.groups.indexOf(g) + 1) + '모둠';
+    t.value = g.name;
+    sizeName(t);
+    save();
+  });
+
+  titleInput.addEventListener('input', function () {
+    state.title = titleInput.value;
+    document.title = titleInput.value.trim() || DEFAULT_TITLE;
+    saveSoon();
+  });
+  titleInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); titleInput.blur(); }
+  });
+  titleInput.addEventListener('blur', function () {
+    state.title = titleInput.value.trim() || DEFAULT_TITLE;
+    titleInput.value = state.title;
+    document.title = state.title;
+    save();
+  });
+
+  btnAdd.addEventListener('click', addGroup);
+  btnEdit.addEventListener('click', function () { setEditing(!editing, true); layout(); });
+  btnSound.addEventListener('click', function () {
+    state.sound = !state.sound;
+    updateSoundBtn();
+    save();
+    if (state.sound) sfx.up();
+    layout();
+  });
+  btnReset.addEventListener('click', askReset);
+
+  var rafId = 0;
+  window.addEventListener('resize', function () {
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(layout);
+  });
+  window.addEventListener('load', layout);
+
+  // 같은 파일을 다른 탭에서 열어 둔 경우 서로 맞춰 줌
+  window.addEventListener('storage', function (e) {
+    if (e.key !== STORAGE_KEY) return;
+    var s = load();
+    if (!s) return;
+    state = s;
+    titleInput.value = state.title;
+    document.title = state.title;
+    updateSoundBtn();
+    render();
+  });
+  // 창을 닫기 직전에 아직 저장되지 않은 내용이 있으면 저장
+  window.addEventListener('pagehide', function () { if (saveTimer) save(); });
+  document.addEventListener('visibilitychange', function () { if (document.hidden && saveTimer) save(); });
+
+  /* ───────── 시작 ───────── */
+  state = load() || defaultState();
+  titleInput.value = state.title;
+  document.title = state.title;
+  updateSoundBtn();
+  setEditing(false, false);
+  render();
+})();
+</script>
+</body>
+</html>
